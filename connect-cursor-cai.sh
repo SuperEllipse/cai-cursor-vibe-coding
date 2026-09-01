@@ -92,6 +92,16 @@ info()  { printf '==> %s\n' "$*" >&2; }
 warn()  { printf 'warning: %s\n' "$*" >&2; }
 error() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
+# Show paths with ~ instead of /Users/<you>/... in user-facing output
+path_for_display() {
+  local p="$1"
+  if [[ "$p" == "${HOME}"/* ]]; then
+    printf '~%s' "${p#"${HOME}"}"
+  else
+    printf '%s' "$p"
+  fi
+}
+
 usage() {
   sed -n '2,/^set -euo pipefail$/p' "$0" | head -n -1 | tail -n +2
   exit 0
@@ -173,7 +183,7 @@ check_cdswctl() {
 Download it from Cloudera AI → User Settings → Keys & Access → Remote Editing
 and add the folder to your PATH."
   fi
-  if ! cdswctl --help >/dev/null 2>&1; then
+  if ! cdswctl version >/dev/null 2>&1; then
     error "[1/6] cdswctl is on PATH but failed to run.
 
 On macOS, allow it in System Settings → Privacy & Security if Gatekeeper blocked it."
@@ -215,7 +225,7 @@ Use a key without a passphrase for cdswctl remote SSH, or generate a new one:
   ssh-keygen -C cai -f ${SSH_IDENTITY_FILE} -N \"\""
   fi
 
-  info "[3/6] SSH key pair: OK (${SSH_IDENTITY_FILE})"
+  info "[3/6] SSH key pair: OK ($(path_for_display "$SSH_IDENTITY_FILE"))"
 }
 
 check_api_key_config() {
@@ -223,7 +233,7 @@ check_api_key_config() {
     error "[4/6] API_KEY is not set in ${ENV_FILE}."
   fi
 
-  if [[ "$API_KEY" == "your-api-key" ]] || [[ "$API_KEY" == *"your-api"* ]]; then
+  if [[ "$API_KEY" == "your-api-key" ]] || [[ "$API_KEY" == "your-rotated-api-key" ]] || [[ "$API_KEY" == *"your-api"* ]]; then
     error "[4/6] API_KEY still has the placeholder value in ${ENV_FILE}.
 
 Create an API key in Cloudera AI → User Settings → Keys & Access → API Keys
@@ -258,7 +268,7 @@ remind_ssh_public_key_in_cai() {
   warn "[6/6] SSH public key in CAI cannot be verified automatically."
   warn "      Confirm you have pasted this key into Cloudera AI:"
   warn "      User Settings → Keys & Access → Remote Editing → SSH Public Key"
-  warn "      Public key file: ${SSH_PUBLIC_KEY_FILE}"
+  warn "      Public key file: $(path_for_display "$SSH_PUBLIC_KEY_FILE")"
   warn "      Preview: $(head -c 60 "${SSH_PUBLIC_KEY_FILE}")..."
 }
 
@@ -506,6 +516,8 @@ Stop any stale tunnel (e.g. a previous run still holding port ${preferred}) and 
 
 ensure_ssh_config() {
   local ssh_config="${HOME}/.ssh/config"
+  local identity_display
+  identity_display="$(path_for_display "$SSH_IDENTITY_FILE")"
   mkdir -p "${HOME}/.ssh"
   chmod 700 "${HOME}/.ssh"
 
@@ -519,7 +531,7 @@ ensure_ssh_config() {
     info "Updating SSH config entry '${SSH_HOST_ALIAS}' (port ${SSH_LOCAL_PORT})..."
     local tmp
     tmp="$(mktemp)"
-    awk -v host="$SSH_HOST_ALIAS" -v port="$SSH_LOCAL_PORT" -v identity="$SSH_IDENTITY_FILE" '
+    awk -v host="$SSH_HOST_ALIAS" -v port="$SSH_LOCAL_PORT" -v identity="$identity_display" '
       BEGIN { in_block=0 }
       /^Host / {
         if (in_block) in_block=0
@@ -541,7 +553,7 @@ Host ${SSH_HOST_ALIAS}
     HostName localhost
     Port ${SSH_LOCAL_PORT}
     User cdsw
-    IdentityFile ${SSH_IDENTITY_FILE}
+    IdentityFile ${identity_display}
     StrictHostKeyChecking no
     ServerAliveInterval 60
     ServerAliveCountMax 10
@@ -554,6 +566,8 @@ EOF
 # ---------------------------------------------------------------------------
 
 print_cursor_instructions() {
+  local identity_display
+  identity_display="$(path_for_display "$SSH_IDENTITY_FILE")"
   cat <<EOF
 
 ===============================================================================
@@ -561,7 +575,7 @@ print_cursor_instructions() {
 ================================================================================
 
 Sanity check (optional, in another terminal):
-  ssh -i ${SSH_IDENTITY_FILE} -p ${SSH_LOCAL_PORT} cdsw@localhost
+  ssh -i ${identity_display} -p ${SSH_LOCAL_PORT} cdsw@localhost
 
 Connect in Cursor:
   1. Cmd+Shift+P (Mac) or Ctrl+Shift+P (Windows/Linux)
