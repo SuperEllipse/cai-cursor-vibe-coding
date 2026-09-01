@@ -1,0 +1,53 @@
+site_name: Cursor + Cloudera AI — Vibe Coding
+site_description: >-
+  Connect Cursor IDE to Cloudera AI via Remote SSH for AI-assisted vibe coding
+  in your workbench session.
+site_url: https://SuperEllipse.github.io/cai-cursor-vibe-coding/
+repo_url: https://github.com/SuperEllipse/cai-cursor-vibe-coding
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: orange
+      accent: deep orange
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: orange
+      accent: deep orange
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.top
+    - navigation.sections
+    - navigation.footer
+    - content.code.annotate
+    - content.code.copy
+    - search.suggest
+    - search.highlight
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - Step by Step Setup:
+      - Prerequisites: prerequisites.md
+      - Connecting Cursor to CAI: connecting-cursor.md
